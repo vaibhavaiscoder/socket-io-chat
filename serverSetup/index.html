@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat Interface</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    #messages {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Chat Interface</h1>
+  
+  <div id="user-setup">
+    <label for="senderIdInput">Your ID:</label>
+    <input type="text" id="senderIdInput" placeholder="Enter your ID" />
+    <label for="receiverIdInput">Receiver ID:</label>
+    <input type="text" id="receiverIdInput" placeholder="Enter receiver ID" />
+    <button id="startChatButton">Start Chat</button>
+  </div>
+
+  <div id="chat-container" style="display: none;">
+    <div id="messages"></div>
+    <input type="text" id="messageInput" placeholder="Type a message..." />
+    <button id="sendButton">Send</button>
+  </div>
+
+  <script>
+    const socket = io();
+
+    let senderId;
+    let receiverId;
+
+    // Start chat after setting IDs
+    document.getElementById("startChatButton").onclick = () => {
+      senderId = document.getElementById("senderIdInput").value;
+      receiverId = document.getElementById("receiverIdInput").value;
+
+      if (senderId && receiverId) {
+        document.getElementById("user-setup").style.display = "none";
+        document.getElementById("chat-container").style.display = "block";
+      } else {
+        alert("Please enter both sender and receiver IDs.");
+      }
+    };
+
+    // Display total clients connected
+    socket.on("clients-total", (count) => {
+      console.log("Clients connected:", count);
+    });
+
+    // Handle sending messages
+    document.getElementById("sendButton").onclick = () => {
+      const messageInput = document.getElementById("messageInput");
+      const content = messageInput.value;
+
+      if (content.trim() !== "") {
+        const data = {
+          senderId, // Use the dynamic sender ID
+          receiverId, // Use the dynamic receiver ID
+          content,
+        };
+
+        socket.emit("message", data); // Send message to server
+        messageInput.value = "";
+
+        // Display the message sent by the current user
+        displayMessage(senderId, content, true);
+      }
+    };
+
+    // Display incoming messages
+    socket.on("chat-message", (data) => {
+      const { senderId, content } = data;
+      displayMessage(senderId, content, false);
+    });
+
+    // Function to display messages in the chat
+    function displayMessage(senderId, content, isSender) {
+      const messageElement = document.createElement("div");
+      const senderLabel = isSender ? "myid" : `Senderid ${senderId}`;
+      messageElement.innerText = `${senderLabel}: ${content}`;
+      document.getElementById("messages").appendChild(messageElement);
+    }
+  </script>
+</body>
+</html>
